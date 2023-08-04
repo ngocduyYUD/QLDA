@@ -3,10 +3,10 @@ SoftwareSerial BT_Serial(2, 3); // RX, TX
 
 const int inA1 = 7; 
 const int inA2 = 6; 
-const int enA  = 10;
+const int enA  = 5;
 const int inB1 = 9; 
 const int inB2 = 8;
-const int enB = 5; 
+const int enB = 10; 
 
 
 const int L_S = 13;
