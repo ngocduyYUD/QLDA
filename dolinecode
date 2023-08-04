@@ -1,0 +1,182 @@
+#include <SoftwareSerial.h>
+SoftwareSerial BT_Serial(2, 3); // RX, TX
+
+const int inA1 = 7; 
+const int inA2 = 6; 
+const int enA  = 10;
+const int inB1 = 9; 
+const int inB2 = 8;
+const int enB = 5; 
+
+
+const int L_S = 13;
+const int S_S = 12; 
+const int R_S = 11;
+int left_sensor_state;
+int s_sensor_state;  
+int right_sensor_state;
+
+int spd=150;
+
+int bt_data;
+int mode = 0;
+
+
+void setup() {
+  pinMode(L_S, INPUT); 
+  pinMode(R_S, INPUT);
+  pinMode(S_S, INPUT);
+  pinMode(inA1, OUTPUT);
+  pinMode(inA2, OUTPUT);
+  pinMode(inB1, OUTPUT);
+  pinMode(inB2, OUTPUT);
+  pinMode(enA, OUTPUT);
+  pinMode(enB, OUTPUT);
+  Serial.begin(9600);
+  analogWrite(enA, spd);
+  analogWrite(enB, spd);
+  Serial.begin(9600); // start serial communication at 9600bps
+  BT_Serial.begin(9600); 
+  delay(2000);
+}
+
+void forword() { 
+  // for (int i=1; i<=spd;i++) {
+     digitalWrite (inA1, LOW);
+      digitalWrite(inA2, HIGH);
+      digitalWrite (inB1, HIGH);
+      digitalWrite(inB2, LOW);
+      analogWrite(enA,250);
+      analogWrite(enB,250);
+  //     delay(10);
+  // } 
+}
+
+void back() { 
+
+  digitalWrite (inA1, LOW);
+  digitalWrite(inA2, HIGH);
+  digitalWrite (inB1, HIGH);
+  digitalWrite(inB2, LOW);
+  delay(10);
+}
+
+
+void turnRight() {
+  for(int i=spd;i<=200;i++) {
+    digitalWrite (inA1, LOW);
+  digitalWrite(inA2, HIGH);
+  digitalWrite (inB1, LOW);
+  digitalWrite(inB2, HIGH);
+    analogWrite(enA,i);
+      analogWrite(enB,i);
+  delay(1);
+  }
+
+}
+
+void turnLeft() {
+  for(int i =spd; i<=200;i++) {
+      digitalWrite (inA1, HIGH);
+  digitalWrite(inA2, LOW);
+  digitalWrite (inB1, HIGH);
+  digitalWrite(inB2, LOW);
+   analogWrite(enA,i);
+      analogWrite(enB,i);
+    delay(1);
+
+  }
+}
+
+void Stop() {
+
+  digitalWrite (inA1, LOW);
+  digitalWrite(inA2, LOW);
+  digitalWrite (inB1, LOW);
+  digitalWrite(inB2, LOW);
+}
+
+
+
+void loop() {
+if(BT_Serial.available() > 0){  //if some data is sent, reads it and saves in state     
+bt_data = BT_Serial.read();      
+if(bt_data > 20){spd = bt_data;}      
+}
+
+     if(bt_data == 8){mode=1; spd=200;} //Auto Line Follower Command  
+else if(bt_data == 9){mode=0; Stop();}    //Manual Android Application Control Command
+
+analogWrite(enA, spd); // Write The Duty Cycle 0 to 255 Enable Pin A for Motor1 speed 
+analogWrite(enB, spd); // Write The Duty Cycle 0 to 255 Enable Pin B for Motor2 speed 
+
+if(mode==0){     
+//===============================================================================
+//                          Key Control Command
+//=============================================================================== 
+     if(bt_data == 1){forword(); }  // if the bt_data is '1' the DC motor will go forward
+else if(bt_data == 2){back();}  // if the bt_data is '2' the motor will Reverse
+else if(bt_data == 3){turnLeft();}  // if the bt_data is '3' the motor will turn left
+else if(bt_data == 4){turnRight();} // if the bt_data is '4' the motor will turn right
+else if(bt_data == 5){Stop(); }
+}  
+else{
+  delayMicroseconds(2);
+  delayMicroseconds(10);
+
+  left_sensor_state = digitalRead(L_S);
+  s_sensor_state = digitalRead(S_S);
+  right_sensor_state = digitalRead(R_S);
+
+  // 010 di thang
+  // 100 trai ddao banh
+  // 110 trai cua
+  // 011 cua phai
+  // 001 phai dao banh
+  // 000 dung yen
+  // 111 di thang
+
+  if ((digitalRead(L_S) == 0) && (digitalRead(S_S) == 1) && (digitalRead(R_S) == 0)) { 
+    forword(); // đi tiến
+  }
+
+  else if ((digitalRead(L_S) == 1) && (digitalRead(S_S) == 1) && (digitalRead(R_S) == 0)) {
+    turnLeft(); // rẻ trái
+  }
+  else if ((digitalRead(L_S) == 1) && (digitalRead(S_S) == 0) && (digitalRead(R_S) == 0)) {
+    turnLeft(); // rẻ trái dao banh
+  }
+
+  else if ((digitalRead(L_S) == 0) && (digitalRead(S_S) == 1) && (digitalRead(R_S) == 1)) {
+    turnRight(); // rẻ phải
+  }
+  else if ((digitalRead(L_S) == 0) && (digitalRead(S_S) == 0) && (digitalRead(R_S) == 1)) {
+    turnRight(); // rẻ phải
+  }
+
+  else if ((digitalRead(L_S) == 0) && (digitalRead(S_S) == 0) && (digitalRead(R_S) == 0)) {
+  // stopO
+    int count =0;
+    while(count<5) {
+      forword();
+      delay(5);
+      count++;
+      if(!digitalRead(L_S) || !digitalRead(S_S) || !digitalRead(R_S)){break;}
+    }
+    Stop();
+  }
+  else if((digitalRead(L_S) == 1) && (digitalRead(S_S) == 1) && (digitalRead(R_S) == 1)) {
+    forword();
+    delay(10);
+  }
+  else if((digitalRead(L_S) == 1) && (digitalRead(S_S) == 0) && (digitalRead(R_S) == 1)) {
+    forword();
+    delay(10);
+  }
+  delay(10);
+}
+}
+
+
+
+
